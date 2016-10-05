@@ -40,14 +40,8 @@ FILENAME=$1 	# %FILE% - Filename of original file
 
 TEMPFILENAME="$(mktemp)"  # Temporary File for transcoding
 
+# Uncomment if you want to adjust the bandwidth for this thread
 #MYPID=$$	# Process ID for current script
-
-echo "********************************************************"
-echo "********************************************************"
-echo "         MythTV to Plex > Transcode and Organize" 
-echo "********************************************************"
-echo "********************************************************"
-
 # Adjust niceness of CPU priority for the current process
 #renice 19 $MYPID
 
@@ -62,7 +56,7 @@ echo "********************************************************"
 
 rm -f "$FILENAME"
 mv -f $TEMPFILENAME "$FILENAME"
-chmod 777 "$FILENAME"
+chmod 777 "$FILENAME" # This step may no tbe neccessary, but hey why not.
 
 echo "Done.  Congrats!"
 
