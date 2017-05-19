@@ -36,27 +36,33 @@
 #  Do not edit below this line
 #****************************************************************************** 
 
-FILENAME=$1 	# %FILE% - Filename of original file
+if [ ! -z "$1" ]; then 
+# The if selection statement proceeds to the script if $1 is not empty.
 
-TEMPFILENAME="$(mktemp)"  # Temporary File for transcoding
+   FILENAME=$1 	# %FILE% - Filename of original file
 
-# Uncomment if you want to adjust the bandwidth for this thread
-#MYPID=$$	# Process ID for current script
-# Adjust niceness of CPU priority for the current process
-#renice 19 $MYPID
+   TEMPFILENAME="$(mktemp)"  # Temporary File for transcoding
 
-echo "********************************************************"
-echo "Transcoding, Converting to H.264 w/Handbrake"
-echo "********************************************************"
-HandBrakeCLI -i "$FILENAME" -o "$TEMPFILENAME" -e X264 -q 20 -a 1 -E copy:aac -B 160 -6 dp12 -R Auto -D0.0 --audio-copy-mask aac --audio-fallback faac -f mp4 --loose-anamorphic --modulus 2 -m --x264-preset veryfast --h264-profile auto --h264-level 4.0 --maxHeight 720
+   # Uncomment if you want to adjust the bandwidth for this thread
+   #MYPID=$$	# Process ID for current script
+   # Adjust niceness of CPU priority for the current process
+   #renice 19 $MYPID
 
-echo "********************************************************"
-echo "Cleanup / Copy $TEMPFILENAME to $FILENAME"
-echo "********************************************************"
+   echo "********************************************************"
+   echo "Transcoding, Converting to H.264 w/Handbrake"
+   echo "********************************************************"
+   HandBrakeCLI -i "$FILENAME" -o "$TEMPFILENAME" -e X264 -q 20 -a 1 -E copy:aac -B 160 -6 dp12 -R Auto -D0.0 --audio-copy-mask aac --audio-fallback faac -f mp4 --loose-anamorphic --modulus 2 -m --x264-preset veryfast --h264-profile auto --h264-level 4.0 --maxHeight 720
 
-rm -f "$FILENAME"
-mv -f $TEMPFILENAME "$FILENAME"
-chmod 777 "$FILENAME" # This step may no tbe neccessary, but hey why not.
+   echo "********************************************************"
+   echo "Cleanup / Copy $TEMPFILENAME to $FILENAME"
+   echo "********************************************************"
 
-echo "Done.  Congrats!"
+   rm -f "$FILENAME"
+   mv -f "$TEMPFILENAME" "$FILENAME"
+   chmod 777 "$FILENAME" # This step may no tbe neccessary, but hey why not.
 
+   echo "Done.  Congrats!"
+else
+   echo "PlexPostProc by nebhead"
+   echo "Usage: $0 FileName"
+fi
