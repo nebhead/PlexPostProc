@@ -51,7 +51,7 @@ if [ ! -z "$1" ]; then
    echo "********************************************************"
    echo "Transcoding, Converting to H.264 w/Handbrake"
    echo "********************************************************"
-   HandBrakeCLI -i "$FILENAME" -o "$TEMPFILENAME" -e X264 -q 20 -a 1 -E copy:aac -B 160 -6 dp12 -R Auto -D0.0 --audio-copy-mask aac --audio-fallback faac -f mp4 --loose-anamorphic --modulus 2 -m --x264-preset veryfast --h264-profile auto --h264-level 4.0 --maxHeight 720
+   HandBrakeCLI -i "$FILENAME" -f mkv --aencoder copy -e qsv_h264 --x264-preset veryfast --x264-profile auto -q 16 --maxHeight 720 --decomb bob -o "$TEMPFILENAME"
 
    echo "********************************************************"
    echo "Cleanup / Copy $TEMPFILENAME to $FILENAME"
