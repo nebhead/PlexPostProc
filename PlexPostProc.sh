@@ -1,9 +1,9 @@
-#!/bin/sh
+#!/bin/bash
 
 #****************************************************************************** 
 #****************************************************************************** 
 #
-#            Plex DVR Post Processing w/Handbrake (H.264) Script
+#            Plex DVR Post Processing w/ffmpeg (H.264) Script
 #
 #****************************************************************************** 
 #****************************************************************************** 
@@ -11,7 +11,7 @@
 #  Version: 1.0
 #
 #  Pre-requisites: 
-#     HandBrakeCLI
+#     ffmpeg
 #
 #
 #  Usage: 
@@ -23,12 +23,12 @@
 #      1. Creates a temporary directory in the home directory for 
 #      the show it is about to transcode.
 #
-#      2. Uses Handbrake (could be modified to use ffmpeg or other transcoder, 
+#      2. Uses ffmpeg (could be modified to use handbrake or other transcoder, 
 #      but I chose this out of simplicity) to transcode the original, very 
 #      large MPEG2 format file to a smaller, more manageable H.264 mp4 file 
 #      (which can be streamed to my Roku boxes).
 #
-#	   3. Copies the file back to the original filename for final processing
+#      3. Copies the file back to the original filename for final processing
 #
 #****************************************************************************** 
 
@@ -41,28 +41,34 @@ if [ ! -z "$1" ]; then
 
    FILENAME=$1 	# %FILE% - Filename of original file
 
-   TEMPFILENAME="$(mktemp)"  # Temporary File for transcoding
+   TEMPFILENAME="$(mktemp).mkv"  # Temporary File for transcoding
 
    # Uncomment if you want to adjust the bandwidth for this thread
    #MYPID=$$	# Process ID for current script
    # Adjust niceness of CPU priority for the current process
    #renice 19 $MYPID
 
-   echo "********************************************************"
-   echo "Transcoding, Converting to H.264 w/Handbrake"
-   echo "********************************************************"
-   HandBrakeCLI -i "$FILENAME" -f mkv --aencoder copy -e qsv_h264 --x264-preset veryfast --x264-profile auto -q 16 --maxHeight 720 --decomb bob -o "$TEMPFILENAME"
+   echo "********************************************************" 
+   echo "Starting Transcoding: Converting to H.264 w/ffmpeg @720p" 
+   echo "********************************************************" 
 
-   echo "********************************************************"
-   echo "Cleanup / Copy $TEMPFILENAME to $FILENAME"
-   echo "********************************************************"
+   ffmpeg -i "$FILENAME" -s hd720 -c:v libx264 -preset veryfast -vf yadif -c:a copy "$TEMPFILENAME" 
 
-   rm -f "$FILENAME"
-   mv -f "$TEMPFILENAME" "$FILENAME"
-   chmod 777 "$FILENAME" # This step may no tbe neccessary, but hey why not.
+   echo "********************************************************" 
+   echo "Cleanup / Copy $TEMPFILENAME to $FILENAME" 
+   echo "********************************************************" 
 
-   echo "Done.  Congrats!"
+   rm -f "$FILENAME" # Delete original
+   mv -f "$TEMPFILENAME" "$FILENAME" # Move completed temp to original filename
+   chmod 777 "$FILENAME" # This step may not be neccessary, but hey why not.
+
+   echo "********************************************************" 
+   echo "Done.  Success!" 
+   echo "********************************************************" 
 else
+   echo "********************************************************" 
    echo "PlexPostProc by nebhead"
-   echo "Usage: $0 FileName"
+   echo "Usage: $0 FileName" 
+   echo "********************************************************" 
 fi
+
