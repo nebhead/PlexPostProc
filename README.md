@@ -5,6 +5,12 @@ If you're like me, you probably just want a no-frills/no-fuss script to convert 
 
 I was getting frustrated trying to get FFMpeg and Comskip working / built / installed so I basically went the easy route and just installed handbrake CLI (for headless operation) and a very, very simple script to do the conversion.  All seems to be working fine in its current state so I'm happy to share with the world. 
 
+**UPDATE:** I've added an FFMPEG branch which support FFMPEG instead of HandBrake CLI.  I'll probably only be working in this branch for a while since I was having issues with audio synch with HandBrake.  If you want to grab the FFMPEG version, make sure you clone the right branch, ex. 
+
+~~~~
+git clone -b FFMPEG-Branch https://github.com/nebhead/PlexPostProc
+~~~~
+
 ## Prereqs
 Handbrake CLI
 
@@ -24,7 +30,7 @@ sudo apt-get install handbrake-cli
 ~~~~
 ## Installation
 
-First you will need to get the script onto your machine.  You can do this by cloning my git repository or simlpy downloading and placing in a directory of your choice.  
+First you will need to get the script onto your machine.  You can do this by cloning my git repository or simply downloading and placing in a directory of your choice.  
 
 ~~~~
 sudo apt-get update
