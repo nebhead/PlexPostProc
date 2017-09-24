@@ -36,12 +36,24 @@
 #  Do not edit below this line
 #****************************************************************************** 
 
+check_errs()
+{
+        # Function. Parameter 1 is the return code
+        # Para. 2 is text to display on failure
+        if [ "${1}" -ne "0" ]; then
+           echo "ERROR # ${1} : ${2}"
+           exit ${1}
+        fi
+}
+
+
 if [ ! -z "$1" ]; then 
 # The if selection statement proceeds to the script if $1 is not empty.
 
    FILENAME=$1 	# %FILE% - Filename of original file
 
    TEMPFILENAME="$(mktemp).mkv"  # Temporary File for transcoding
+   check_errs $? "Failed to create temporary file: $TEMPFILENAME"
 
    # Uncomment if you want to adjust the bandwidth for this thread
    #MYPID=$$	# Process ID for current script
@@ -49,10 +61,11 @@ if [ ! -z "$1" ]; then
    #renice 19 $MYPID
 
    echo "********************************************************" 
-   echo "Starting Transcoding: Converting to H.264 w/ffmpeg @720p" 
+   echo "Starting Transcoding: Converting to H.264 w/ffmpeg @180p" 
    echo "********************************************************" 
 
    ffmpeg -i "$FILENAME" -s hd720 -c:v libx264 -preset veryfast -vf yadif -c:a copy "$TEMPFILENAME" 
+   check_errs $? "Failed to convert using ffmepg"
 
    echo "********************************************************" 
    echo "Cleanup / Copy $TEMPFILENAME to $FILENAME" 
@@ -60,7 +73,7 @@ if [ ! -z "$1" ]; then
 
    rm -f "$FILENAME" # Delete original
    mv -f "$TEMPFILENAME" "$FILENAME" # Move completed temp to original filename
-   chmod 777 "$FILENAME" # This step may not be neccessary, but hey why not.
+   chmod 666 "$FILENAME" # This step may not be neccessary, but hey why not.
 
    echo "********************************************************" 
    echo "Done.  Success!" 
