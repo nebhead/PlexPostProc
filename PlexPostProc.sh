@@ -61,7 +61,7 @@ if [ ! -z "$1" ]; then
    #renice 19 $MYPID
 
    echo "********************************************************" 
-   echo "Starting Transcoding: Converting to H.264 w/ffmpeg @180p" 
+   echo "Starting Transcoding: Converting to H.264 w/ffmpeg @720p" 
    echo "********************************************************" 
 
    ffmpeg -i "$FILENAME" -s hd720 -c:v libx264 -preset veryfast -vf yadif -c:a copy "$TEMPFILENAME" 
