@@ -43,3 +43,21 @@ _Where [your-username] is replaced with your username._
 That's it.  
 
 Happy Post-Processing!
+
+## Troubleshoooting
+
+It has been noted that in some cases (for example on MacOS or FreeBSD OSes) the script will fail due to the fact that the FFMPEG or Handbrake binary is not found on the system.  In these cases, you may need to modify the script to include the full path to the executable. 
+
+For example, change this line:
+
+~~~~
+ffmpeg -i "$FILENAME" -s hd720 -c:v libx264 -preset veryfast -vf yadif -c:a copy "$TEMPFILENAME"
+~~~~
+
+To this:
+
+~~~~
+/usr/local/bin/ffmpeg -i "$FILENAME" -s hd720 -c:v libx264 -preset veryfast -vf yadif -c:a copy "$TEMPFILENAME"
+~~~~
+
+Where "/usr/local/bin" is the path to the executable.  
