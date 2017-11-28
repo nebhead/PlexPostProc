@@ -51,5 +51,22 @@ For example:
 _Where [your-username] is replaced with your username._
 
 That's it.  
-
 Happy Post-Processing!
+
+## Troubleshoooting
+
+It has been noted that in some cases (for example on MacOS or FreeBSD OSes) the script will fail due to the fact that the FFMPEG or Handbrake binary is not found on the system.  In these cases, you may need to modify the script to include the full path to the executable. 
+
+For example, change this line:
+
+~~~~
+HandBrakeCLI -i "$FILENAME" -f mkv --aencoder copy -e qsv_h264 --x264-preset veryfast --x264-profile auto -q 16 --maxHeight 720 --decomb bob -o "$TEMPFILENAME"
+~~~~
+
+To this:
+
+~~~~
+/usr/local/bin/HandBrakeCLI -i "$FILENAME" -f mkv --aencoder copy -e qsv_h264 --x264-preset veryfast --x264-profile auto -q 16 --maxHeight 720 --decomb bob -o "$TEMPFILENAME"
+~~~~
+
+Where "/usr/local/bin" is the path to the executable.  
