@@ -36,9 +36,20 @@
 #  Do not edit below this line
 #****************************************************************************** 
 
+fatal() {
+   echo "[FATAL] $1.";
+   echo "[FATAL] Program is now exiting.";
+   exit 1;
+}
+# The above is a simple function for handeling fatal erros. (It outputs an error, and exits the program.)
+
 if [ ! -z "$1" ]; then 
 # The if selection statement proceeds to the script if $1 is not empty.
-
+   if [ ! -f "$1" ]; then 
+      fatal "$1 does not exist"
+   fi
+   # The above if selection statement checks if the file exists before proceeding. 
+   
    FILENAME=$1 	# %FILE% - Filename of original file
 
    TEMPFILENAME="$(mktemp)"  # Temporary File for transcoding
@@ -51,7 +62,7 @@ if [ ! -z "$1" ]; then
    echo "********************************************************"
    echo "Transcoding, Converting to H.264 w/Handbrake"
    echo "********************************************************"
-   HandBrakeCLI -i "$FILENAME" -f mkv --aencoder copy -e qsv_h264 --x264-preset veryfast --x264-profile auto -q 16 --maxHeight 720 --decomb bob -o "$TEMPFILENAME"
+   HandBrakeCLI -i "$FILENAME" -f mkv --aencoder copy -e qsv_h264 --x264-preset veryfast --x264-profile auto -q 16 --maxHeight 720 --decomb bob -o "$TEMPFILENAME" || fatal "Handbreak has failed (Is it installed?)"
 
    echo "********************************************************"
    echo "Cleanup / Copy $TEMPFILENAME to $FILENAME"
