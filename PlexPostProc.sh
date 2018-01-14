@@ -69,7 +69,7 @@ if [ ! -z "$1" ]; then
    echo "********************************************************"
 
    rm -f "$FILENAME"
-   mv -f "$TEMPFILENAME" "$FILENAME"
+   mv -f "$TEMPFILENAME" "${FILENAME%.ts}.mkv"
    chmod 777 "$FILENAME" # This step may no tbe neccessary, but hey why not.
 
    echo "Done.  Congrats!"
