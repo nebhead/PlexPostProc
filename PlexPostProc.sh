@@ -72,8 +72,7 @@ if [ ! -z "$1" ]; then
    echo "********************************************************" 
 
    rm -f "$FILENAME" # Delete original
-   mv -f "$TEMPFILENAME" "$FILENAME" # Move completed temp to original filename
-   chmod 666 "$FILENAME" # This step may not be neccessary, but hey why not.
+   mv -f "$TEMPFILENAME" "${FILENAME%.ts}.mkv" # Move completed temp to original filename
 
    echo "********************************************************" 
    echo "Done.  Success!" 
