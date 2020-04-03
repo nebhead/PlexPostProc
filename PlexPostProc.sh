@@ -3,16 +3,15 @@
 #******************************************************************************
 #******************************************************************************
 #
-#            Plex DVR Post Processing w/ffmpeg (H.264) Script
+#            Plex DVR Post Processing Script
 #
 #******************************************************************************
 #******************************************************************************
 #
-#  Version: 1.0
+#  Version: 2.0
 #
 #  Pre-requisites:
-#     ffmpeg
-#
+#     ffmpeg or handbrakecli
 #
 #  Usage:
 #     'PlexPostProc.sh %1'
@@ -20,19 +19,30 @@
 #  Description:
 #      My script is currently pretty simple.  Here's the general flow:
 #
-#      1. Creates a temporary directory in the home directory for
+#      1. Creates a temporary directory in the /tmp directory for
 #      the show it is about to transcode.
 #
-#      2. Uses ffmpeg (could be modified to use handbrake or other transcoder,
-#      but I chose this out of simplicity) to transcode the original, very
-#      large MPEG2 format file to a smaller, more manageable H.264 mp4 file
-#      (which can be streamed to my Roku boxes).
+#      2. Uses the selected encoder to transcode the original, very
+#      large MPEG2 format file to a smaller, more manageable H.264 mkv file
+#      (which can be streamed to various devices more easily).
 #
-#      3. Copies the file back to the original filename for final processing
+#      3. Copies the file back to the original .grab folder for final processing
+#
+#  Log:
+#     Logs will be generated for each encode with the format:
+#         plexppYYYYMMDD-HHMMSS.logging
+#     Note: Logs are not deleted, so some cleanup of the temp directory may be
+#       required, or a server reboot should clear this folder.
 #
 #******************************************************************************
 
 TMPFOLDER="/tmp"
+ENCODER="ffmpeg"  # Encoder to use:
+                  # "ffmpeg" for FFMPEG [DEFAULT]
+                  # "handbrake" for HandBrake
+RES="720"         # Resolution to convert to:
+                  # "720" = 720 Vertical Resolution
+                  # "1080" = 1080 Vertical Resolution
 
 #******************************************************************************
 #  Do not edit below this line
@@ -47,7 +57,6 @@ check_errs()
            exit ${1}
         fi
 }
-
 
 if [ ! -z "$1" ]; then
 # The if selection statement proceeds to the script if $1 is not empty.
@@ -69,13 +78,23 @@ if [ ! -z "$1" ]; then
    #renice 19 $MYPID
 
    # ********************************************************
-   # Starting Transcoding: Converting to H.264 w/ffmpeg @720p
+   # Starting Transcoding
    # ********************************************************
 
    echo "$(date +"%Y%m%d-%H%M%S"): Starting transcode of $FILENAME to $TEMPFILENAME" | tee -a $LOGFILE
-
-   ffmpeg -i "$FILENAME" -s hd720 -c:v libx264 -preset veryfast -vf yadif -c:a copy "$TEMPFILENAME"
-   check_errs $? "Failed to convert using ffmepg"
+   if [[ $ENCODER == "handbrake" ]]; then
+     echo "You have selected HandBrake" | tee -a $LOGFILE
+     HandBrakeCLI -i "$FILENAME" -f mkv --aencoder copy -e qsv_h264 --x264-preset veryfast --x264-profile auto -q 16 --maxHeight $RES --decomb bob -o "$TEMPFILENAME"
+     check_errs $? "Failed to convert using Handbrake."
+   elif [[ $ENCODER == "ffmpeg" ]]; then
+     echo "You have selected FFMPEG" | tee -a $LOGFILE
+     ffmpeg -i "$FILENAME" -s hd$RES -c:v libx264 -preset veryfast -vf yadif -c:a copy "$TEMPFILENAME"
+     check_errs $? "Failed to convert using FFMPEG."
+   else
+     echo "Oops, invalid ENCODER string.  Using Default [FFMpeg]." | tee -a $LOGFILE
+     ffmpeg -i "$FILENAME" -s hd$RES -c:v libx264 -preset veryfast -vf yadif -c:a copy "$TEMPFILENAME"
+     check_errs $? "Failed to convert using FFMPEG."
+   fi
 
    # ********************************************************"
    # Encode Done. Performing Cleanup
