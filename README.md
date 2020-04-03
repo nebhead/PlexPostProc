@@ -3,9 +3,11 @@ Plex PostProcessing Script for DVR(Beta) on Ubuntu 14.04 (or later) Server
 
 If you're like me, you probably just want a no-frills/no-fuss script to convert your recorded content from Plex DVR, down to a much smaller file size.  Personally, I wanted to downsize more significantly, so I convert to 720p as well.  Your mileage may vary and you can play with handbrake's settings to get just the right config for you.  
 
-I was getting frustrated trying to get FFMpeg and Comskip working / built / installed so I basically went the easy route and just installed handbrake CLI (for headless operation) and a very, very simple script to do the conversion.  All seems to be working fine in its current state so I'm happy to share with the world. 
+I was getting frustrated trying to get FFMpeg and Comskip working / built / installed so I basically went the easy route and just installed handbrake CLI (for headless operation) and a very, very simple script to do the conversion.  All seems to be working fine in its current state so I'm happy to share with the world.
 
-Update: I've added FFMPEG support because I found I had audio synch issues with HandBrake CLI. 
+Update: I've added FFMPEG support because I found I had audio synch issues with HandBrake CLI.
+
+Update: Added some logging and lockfile capability (inspired by (this blog by thatvirtualboy)[https://thatvirtualboy.com/2017/11/28/plex-dvr-postprocessing-script.html]), to try and work around an issue with Plex where it deletes all .grab folders/files after one script completes.  This obviously isn't a good scenario if we have simultaneous scripts running.  
 
 ## Prereqs
 FFMPEG
@@ -34,7 +36,7 @@ Now go to Plex's webui and go to server settings > DVR (Beta) > DVR Settings
 
 From there you should be able to enter the path to the post processing script and you should be done.  
 
-For example: 
+For example:
 ~~~~
 \home\[your-username]\PlexPostProc\PlexPostProc.sh
 ~~~~
@@ -46,7 +48,7 @@ Happy Post-Processing!
 
 ## Troubleshoooting
 
-It has been noted that in some cases (for example on MacOS or FreeBSD OSes) the script will fail due to the fact that the FFMPEG or Handbrake binary is not found on the system.  In these cases, you may need to modify the script to include the full path to the executable. 
+It has been noted that in some cases (for example on MacOS or FreeBSD OSes) the script will fail due to the fact that the FFMPEG or Handbrake binary is not found on the system.  In these cases, you may need to modify the script to include the full path to the executable.
 
 For example, change this line:
 
