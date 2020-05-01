@@ -47,15 +47,42 @@ cd PlexPostProc
 sudo chmod 777 PlexPostProc.sh
 ~~~~
 
+**NEW (2020/04/30):** Since BETA PMS Version 1.19.3.2740-add6f438d, you'll need to place your scripts in a special script folder inside the Plex server application directory structure. Postprocessing scripts must now be located inside APPDATA/Scripts. Thus you MUST move the PlexPostProc.sh script to that folder.  You may need to create that folder yourself.  Below is an example of how I did this on my Docker install.
+
+---
+#### Example:
+_This may be different for a pure Linux or MacOS setup, so your mileage may vary._
+
+On my Docker build, my APPDATA/Scripts folder is here:
+~~~
+/config/Library/Application Support/Plex Media Server/Scripts
+~~~
+
+Where my 'config' folder is a Docker volume.  My config folder is mapped to
+
+~~~
+/home/docker/plex/config
+~~~
+
+Thus, I needed to move my script by doing this:
+
+~~~
+sudo mkdir /home/docker/plex/config/Library/Application Support/Plex Media Server/Scripts/
+sudo mv PlexPostProc.sh /home/docker/plex/config/Library/Application Support/Plex Media Server/Scripts/
+~~~
+
+---
+
 Now go to Plex's webui and go to server settings > DVR (Beta) > DVR Settings
 
-From there you should be able to enter the path to the post processing script and you should be done.  
+From there you should be able to enter the name of the post processing script and you should be done.  
 
 For example:
 ~~~~
-/home/[your-username]/PlexPostProc/PlexPostProc.sh
+PlexPostProc.sh
 ~~~~
-_Where [your-username] is replaced with your username._
+
+
 
 Finally, you may want to edit the script to customize some parameters at the top of the file.  Here are the defaults:
 
