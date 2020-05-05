@@ -40,6 +40,7 @@ TMPFOLDER="/tmp"
 ENCODER="ffmpeg"  # Encoder to use:
                   # "ffmpeg" for FFMPEG [DEFAULT]
                   # "handbrake" for HandBrake
+                  # "nvtrans" for Plex Transcoder with NVENC support
 RES="720"         # Resolution to convert to:
                   # "720" = 720 Vertical Resolution
                   # "1080" = 1080 Vertical Resolution
@@ -60,11 +61,11 @@ check_errs()
 
 if [ ! -z "$1" ]; then
 # The if selection statement proceeds to the script if $1 is not empty.
-   if [ ! -f "$1" ]; then 
+   if [ ! -f "$1" ]; then
       fatal "$1 does not exist"
    fi
-   # The above if selection statement checks if the file exists before proceeding. 
-   
+   # The above if selection statement checks if the file exists before proceeding.
+
    FILENAME=$1 	# %FILE% - Filename of original file
 
    TEMPFILENAME="$(mktemp).mkv"  # Temporary File Name for transcoding
@@ -94,6 +95,30 @@ if [ ! -z "$1" ]; then
      echo "You have selected FFMPEG" | tee -a $LOGFILE
      ffmpeg -i "$FILENAME" -s hd$RES -c:v libx264 -preset veryfast -vf yadif -c:a copy "$TEMPFILENAME"
      check_errs $? "Failed to convert using FFMPEG."
+	 elif [[ $ENCODER == "nvtrans" ]]; then
+     export FFMPEG_EXTERNAL_LIBS="$(find ~/Library/Application\ Support/Plex\ Media\ Server/Codecs/ -name "libmpeg2video_decoder.so" -printf "%h\n")/"
+     check_errs $? "Failed to convert using smart Plex Transcoder (NVENC). libmpeg2video_decoder.so not found."
+     export LD_LIBRARY_PATH="/usr/lib/plexmediaserver:/usr/lib/plexmediaserver/lib/"
+
+     # Grab some dimension and framerate info so we can set bitrates
+     HEIGHT="$(/usr/lib/plexmediaserver/Plex\ Transcoder -i "$FILENAME" 2>&1 | grep "Stream #0:0" | perl -lane 'print $1 if /, \d{3,}x(\d{3,})/')"
+     FPS="$(/usr/lib/plexmediaserver/Plex\ Transcoder -i "$FILENAME" 2>&1 | grep "Stream #0:0" | perl -lane 'print $1 if /, (\d+(.\d+)*) fps/')"
+
+     if [[ -z "${HEIGHT}" ]]; then
+	     # Failed to get dimensions of source... try a dumb transcode.
+	     /usr/lib/plexmediaserver/Plex\ Transcoder -y -hide_banner -hwaccel nvdec -i "$FILENAME" -s hd$RES -c:v h264_nvenc -preset veryfast -c:a copy "$TEMPFILENAME"
+	     check_errs $? "Failed to convert using simple Plex Transcoder (NVENC)."
+	   else
+	     # Smart transcode based on source dimensions and fps
+       # Bitrate vlaues (Mb). Assuming 1080i30 (ATSC max) has same needs as 720p60
+       # Assuming 60 fps needs 2x bitrate than 30 fps
+       MULTIPLIER=$(echo - | perl -lane "if (${FPS} < 59) {print 1.0} else {print 2.0}")
+       ABR=$(echo - | perl -lane "if (${HEIGHT} < 720) {print 1*${MULTIPLIER}} elsif (${HEIGHT} < 1080) {print 2*${MULTIPLIER}} else {print 4*${MULTIPLIER}}")
+       MBR=$(echo - | perl -lane "print ${ABR} * 1.5")
+       BUF=$(echo - | perl -lane "print ${MBR} * 2.0")
+       /usr/lib/plexmediaserver/Plex\ Transcoder -y -hide_banner -hwaccel nvdec -i "$FILENAME" -c:v h264_nvenc -b:v "${ABR}M" -maxrate:v "${MBR}M" -profile:v high -bf:v 3 -bufsize:v "${BUF}M" -preset:v hq -forced-idr:v 1 -c:a copy "$TEMPFILENAME"
+	     check_errs $? "Failed to convert using smart Plex Transcoder (NVENC)."
+	  fi
    else
      echo "Oops, invalid ENCODER string.  Using Default [FFMpeg]." | tee -a $LOGFILE
      ffmpeg -i "$FILENAME" -s hd$RES -c:v libx264 -preset veryfast -vf yadif -c:a copy "$TEMPFILENAME"

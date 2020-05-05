@@ -5,9 +5,11 @@ If you're like me, you probably just want a no-frills/no-fuss script to convert 
 
 I wanted to create a very, very simple script to do the conversion with no frills.  All seems to be working fine in its current state so I'm happy to share with the world.
 
-2020-04-02 Update 1: Added some logging and lockfile capability (inspired by (this blog by thatvirtualboy)[https://thatvirtualboy.com/2017/11/28/plex-dvr-postprocessing-script.html]), to try and work around an issue with Plex where it deletes all .grab folders/files after one script completes.  This obviously isn't a good scenario if we have simultaneous scripts running.  
+**2020-04-02 Update 1:** Added some logging and lockfile capability (inspired by (this blog by thatvirtualboy)[https://thatvirtualboy.com/2017/11/28/plex-dvr-postprocessing-script.html]), to try and work around an issue with Plex where it deletes all .grab folders/files after one script completes.  This obviously isn't a good scenario if we have simultaneous scripts running.  
 
-2020-04-02 Update 2: Converged handbrake and ffmpeg
+**2020-04-02 Update 2:** Converged handbrake and ffmpeg
+
+**2020-05-05 Update:** Added Plex Transcoder w/NVENC support as an option.  (Thanks to Plex user /u/cedarrapidsboy for adding)  This is untested on my side, but I've been told it works in the Docker install.  
 
 ## Prereqs
 FFmpeg or HandBrakeCLI
