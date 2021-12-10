@@ -42,8 +42,9 @@ ENCODER="ffmpeg"  # Encoder to use:
                   # "handbrake" for HandBrake
                   # "nvtrans" for Plex Transcoder with NVENC support
 RES="720"         # Resolution to convert to:
-                  # "720" = 720 Vertical Resolution
-                  # "1080" = 1080 Vertical Resolution
+		  # "480" = 480 Vertical Resolution
+		  # "720" = 720 Vertical Resolution
+		  # "1080" = 1080 Vertical Resolution
 
 #******************************************************************************
 #  Do not edit below this line
