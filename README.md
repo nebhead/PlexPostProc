@@ -5,7 +5,7 @@ If you're like me, you probably just want a no-frills/no-fuss script to convert 
 
 I wanted to create a very, very simple script to do the conversion with no frills.  All seems to be working fine in its current state so I'm happy to share with the world.
 
-**2022-02-02 Duxa's Fork:* 
+**2022-02-02 Duxa's Fork:** 
 - You need FFMPEG with HEVC (libx265) to use FFMPEG
 - Default FFMPEG HEVC 23.976 FPS with QC 26 and audio 2Ch AAC at 112kbps - This generates 720p videos with adequate quality and ~500Mb per hour
 - Combined logging into a single log for easier tracking
