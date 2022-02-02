@@ -8,7 +8,7 @@
 #******************************************************************************
 #******************************************************************************
 #
-#  Version: 2.0
+#  Version: 2022.2 forked by Duxa
 #
 #  Pre-requisites:
 #     ffmpeg or handbrakecli
@@ -28,12 +28,6 @@
 #
 #      3. Copies the file back to the original .grab folder for final processing
 #
-#  Log:
-#     Logs will be generated for each encode with the format:
-#         plexppYYYYMMDD-HHMMSS.logging
-#     Note: Logs are not deleted, so some cleanup of the temp directory may be
-#       required, or a server reboot should clear this folder.
-#
 #******************************************************************************
 
 TMPFOLDER="/tmp"
@@ -42,13 +36,15 @@ ENCODER="ffmpeg"  # Encoder to use:
                   # "handbrake" for HandBrake
                   # "nvtrans" for Plex Transcoder with NVENC support
 RES="720"         # Resolution to convert to:
-		  # "480" = 480 Vertical Resolution
-		  # "720" = 720 Vertical Resolution
-		  # "1080" = 1080 Vertical Resolution
+                  # "480" = 480 Vertical Resolution
+                  # "720" = 720 Vertical Resolution
+                  # "1080" = 1080 Vertical Resolution
 
 #******************************************************************************
 #  Do not edit below this line
 #******************************************************************************
+
+sleep 3
 
 check_errs()
 {
@@ -67,7 +63,9 @@ if [ ! -z "$1" ]; then
    fi
    # The above if selection statement checks if the file exists before proceeding.
 
-   FILENAME=$1 	# %FILE% - Filename of original file
+   FILENAME=$1  # %FILE% - Filename of original file
+
+   FILESIZE="$(ls -lh "$FILENAME" | awk '{ print $5 }')"
 
    TEMPFILENAME="$(mktemp).mkv"  # Temporary File Name for transcoding
 
@@ -75,11 +73,11 @@ if [ ! -z "$1" ]; then
    touch $LOCKFILE # Create the lock file
    check_errs $? "Failed to create temporary lockfile: $LOCKFILE"
 
-   LOGFILE="$TMPFOLDER/plexpp$(date +"%Y%m%d-%H%M%S").log" # Create a unique log file.
+   LOGFILE="$TMPFOLDER/plex_DVR_post_processing_log"
    touch $LOGFILE # Create the log file
 
    # Uncomment if you want to adjust the bandwidth for this thread
-   #MYPID=$$	# Process ID for current script
+   #MYPID=$$    # Process ID for current script
    # Adjust niceness of CPU priority for the current process
    #renice 19 $MYPID
 
@@ -87,16 +85,23 @@ if [ ! -z "$1" ]; then
    # Starting Transcoding
    # ********************************************************
 
-   echo "$(date +"%Y%m%d-%H%M%S"): Starting transcode of $FILENAME to $TEMPFILENAME" | tee -a $LOGFILE
+   printf "$(date +"%Y%m%d-%H%M%S"): Transcoding $FILENAME to $TEMPFILENAME\n" | tee -a $LOGFILE
    if [[ $ENCODER == "handbrake" ]]; then
      echo "You have selected HandBrake" | tee -a $LOGFILE
      HandBrakeCLI -i "$FILENAME" -f mkv --aencoder copy -e qsv_h264 --x264-preset veryfast --x264-profile auto -q 16 --maxHeight $RES --decomb bob -o "$TEMPFILENAME"
      check_errs $? "Failed to convert using Handbrake."
    elif [[ $ENCODER == "ffmpeg" ]]; then
-     echo "You have selected FFMPEG" | tee -a $LOGFILE
-     ffmpeg -i "$FILENAME" -s hd$RES -c:v libx264 -preset veryfast -vf yadif -c:a copy "$TEMPFILENAME"
+     printf "Using FFMPEG" | tee -a $LOGFILE
+     printf " $FILESIZE -> " | tee -a $LOGFILE
+     start_time=$(date +%s)
+     ffmpeg -i "$FILENAME" -s hd$RES -c:v libx265 -r 24000/1001  -preset veryfast -crf 26 -vf yadif -codec:a aac -ac 2 -b:a 112k -async 1 "$TEMPFILENAME"
+     end_time=$(date +%s)
+     seconds="$(( end_time - start_time ))"
+     minutes_taken="$(( seconds / 60 ))"
+     seconds_taken="$(( $seconds - (minutes_taken * 60) ))"
+     printf "$(ls -lh $TEMPFILENAME | awk ' { print $5 }') - [$minutes_taken min $seconds_taken sec]\n" | tee -a $LOGFILE
      check_errs $? "Failed to convert using FFMPEG."
-	 elif [[ $ENCODER == "nvtrans" ]]; then
+   elif [[ $ENCODER == "nvtrans" ]]; then
      export FFMPEG_EXTERNAL_LIBS="$(find ~/Library/Application\ Support/Plex\ Media\ Server/Codecs/ -name "libmpeg2video_decoder.so" -printf "%h\n")/"
      check_errs $? "Failed to convert using smart Plex Transcoder (NVENC). libmpeg2video_decoder.so not found."
      export LD_LIBRARY_PATH="/usr/lib/plexmediaserver:/usr/lib/plexmediaserver/lib/"
@@ -106,11 +111,11 @@ if [ ! -z "$1" ]; then
      FPS="$(/usr/lib/plexmediaserver/Plex\ Transcoder -i "$FILENAME" 2>&1 | grep "Stream #0:0" | perl -lane 'print $1 if /, (\d+(.\d+)*) fps/')"
 
      if [[ -z "${HEIGHT}" ]]; then
-	     # Failed to get dimensions of source... try a dumb transcode.
-	     /usr/lib/plexmediaserver/Plex\ Transcoder -y -hide_banner -hwaccel nvdec -i "$FILENAME" -s hd$RES -c:v h264_nvenc -preset veryfast -c:a copy "$TEMPFILENAME"
-	     check_errs $? "Failed to convert using simple Plex Transcoder (NVENC)."
-	   else
-	     # Smart transcode based on source dimensions and fps
+             # Failed to get dimensions of source... try a dumb transcode.
+             /usr/lib/plexmediaserver/Plex\ Transcoder -y -hide_banner -hwaccel nvdec -i "$FILENAME" -s hd$RES -c:v h264_nvenc -preset veryfast -c:a copy "$TEMPFILENAME"
+             check_errs $? "Failed to convert using simple Plex Transcoder (NVENC)."
+           else
+             # Smart transcode based on source dimensions and fps
        # Bitrate vlaues (Mb). Assuming 1080i30 (ATSC max) has same needs as 720p60
        # Assuming 60 fps needs 2x bitrate than 30 fps
        MULTIPLIER=$(echo - | perl -lane "if (${FPS} < 59) {print 1.0} else {print 2.0}")
@@ -118,8 +123,8 @@ if [ ! -z "$1" ]; then
        MBR=$(echo - | perl -lane "print ${ABR} * 1.5")
        BUF=$(echo - | perl -lane "print ${MBR} * 2.0")
        /usr/lib/plexmediaserver/Plex\ Transcoder -y -hide_banner -hwaccel nvdec -i "$FILENAME" -c:v h264_nvenc -b:v "${ABR}M" -maxrate:v "${MBR}M" -profile:v high -bf:v 3 -bufsize:v "${BUF}M" -preset:v hq -forced-idr:v 1 -c:a copy "$TEMPFILENAME"
-	     check_errs $? "Failed to convert using smart Plex Transcoder (NVENC)."
-	  fi
+             check_errs $? "Failed to convert using smart Plex Transcoder (NVENC)."
+          fi
    else
      echo "Oops, invalid ENCODER string.  Using Default [FFMpeg]." | tee -a $LOGFILE
      ffmpeg -i "$FILENAME" -s hd$RES -c:v libx264 -preset veryfast -vf yadif -c:a copy "$TEMPFILENAME"
@@ -142,17 +147,25 @@ if [ ! -z "$1" ]; then
    check_errs $? "Failed to remove lockfile."
 
    # [WORKAROUND] Wait for any other post-processing scripts to complete before exiting.
+   timeout_counter=120
    while [ true ] ; do
      if ls "$TMPFOLDER/"*".ppplock" 1> /dev/null 2>&1; then
+       if  [[ $timeout_counter -eq 0 ]]; then
+           echo "Timeout reached, ending wait" | tee -a $LOGFILE
+           break
+       fi
        echo "$(date +"%Y%m%d-%H%M%S"): Looks like there is another scripting running.  Waiting." | tee -a $LOGFILE
-       sleep 5
+       timeout_counter=$((timeout_counter-1))
+       sleep 60
      else
-       echo "$(date +"%Y%m%d-%H%M%S"): It looks like all scripts are done running, exiting." | tee -a $LOGFILE
+       if  [[ $timeout_counter -lt 119 ]]; then
+           echo "$(date +"%Y%m%d-%H%M%S"): It looks like all scripts are done running, exiting." | tee -a $LOGFILE
+       fi
        break
      fi
    done
 
-   echo "$(date +"%Y%m%d-%H%M%S"): Encode done.  Exiting." | tee -a $LOGFILE
+   printf "$(date +"%Y%m%d-%H%M%S"): Encode done.  Exiting. \n\n" | tee -a $LOGFILE
 
 else
    echo "********************************************************" | tee -a $LOGFILE
@@ -162,3 +175,7 @@ else
 fi
 
 rm -f "$TMPFOLDER/"*".ppplock"  # Make sure all lock files are removed, just in case there was an error somewhere in the script
+sleep 2
+rm -f "$TMPFOLDER/"tmp.* #Deleting other tmp files
+
+sleep 5 #Time for things to settle down
