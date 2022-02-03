@@ -8,7 +8,7 @@
 #******************************************************************************
 #******************************************************************************
 #
-#  Version: 2022.2 forked by Duxa
+#  Version: 2.0 forked by Duxa
 #
 #  Pre-requisites:
 #     ffmpeg or handbrakecli
@@ -27,6 +27,12 @@
 #      (which can be streamed to various devices more easily).
 #
 #      3. Copies the file back to the original .grab folder for final processing
+#
+#  Log:
+#     Logs will be generated for each encode with the format:
+#         plexppYYYYMMDD-HHMMSS.logging
+#     Note: Logs are not deleted, so some cleanup of the temp directory may be
+#       required, or a server reboot should clear this folder.
 #
 #******************************************************************************
 
@@ -135,7 +141,7 @@ if [ ! -z "$1" ]; then
    # Encode Done. Performing Cleanup
    # ********************************************************"
 
-   echo "$(date +"%Y%m%d-%H%M%S"): Finished transcode of $FILENAME to $TEMPFILENAME" | tee -a $LOGFILE
+   echo "$(date +"%Y%m%d-%H%M%S"): Finished transcode" | tee -a $LOGFILE
 
    rm -f "$FILENAME" # Delete original in .grab folder
    check_errs $? "Failed to remove original file: $FILENAME"
@@ -176,6 +182,6 @@ fi
 
 rm -f "$TMPFOLDER/"*".ppplock"  # Make sure all lock files are removed, just in case there was an error somewhere in the script
 sleep 2
-rm -f "$TMPFOLDER/"tmp.* #Deleting other tmp files
+rm -f "/tmp/tmp."* #Deleting other tmp files
 
 sleep 5 #Time for things to settle down
