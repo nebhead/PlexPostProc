@@ -6,12 +6,13 @@ If you're like me, you probably just want a no-frills/no-fuss script to convert 
 I wanted to create a very, very simple script to do the conversion with no frills.  All seems to be working fine in its current state so I'm happy to share with the world.
 
 **2022-02-02 Duxa's Fork:** 
-- You need FFMPEG with HEVC (libx265) to use FFMPEG
-- Default FFMPEG HEVC 23.976 FPS with QC 26 and audio 2Ch AAC at 112kbps - This generates 720p videos with adequate quality and ~500Mb per hour
+- You need FFMPEG with HEVC (libx265) to use FFMPEG. Recommended Ubuntu 20.04 or later to utilize libx265 3.2+
+- Defaults are set to FFMPEG HEVC 23.976 FPS with QC 26 and audio 2Ch AAC at 112kbps - This generates 720p videos with adequate quality at ~400Mb per hour
 - Combined logging into a single log for easier tracking
-- Cleaned up logging, added size stats (start size -> compressed size) and time taken to compress
+- Cleaned up logging, added size stats (start size -> compressed size) and time taken to transcode
 - Added ppp file lock timeout of 2 hours to avoid race condition
-- Added cleanup of other tmp files in TEMPFOLDER
+- Added cleanup of other tmp files in /tmp/
+- NOTE: Handbrake and nvenc portions of the script are unchanged.
 
 **2020-04-02 Update 1:** Added some logging and lockfile capability (inspired by (this blog by thatvirtualboy)[https://thatvirtualboy.com/2017/11/28/plex-dvr-postprocessing-script.html]), to try and work around an issue with Plex where it deletes all .grab folders/files after one script completes.  This obviously isn't a good scenario if we have simultaneous scripts running.  
 
