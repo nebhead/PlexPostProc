@@ -54,7 +54,7 @@ VIDEO_CODEC="libx265" # Will need Ubuntu 18.04 LTS or later. Otherwise change to
 VIDEO_QUALITY=26 #Lower values produce better quality. It is not recommended going lower than 18. 26 produces around 1Mbps video, 23 around 1.5Mbps.
 VIDEO_FRAMERATE="24000/1001" #Standard US movie framerate, most US TV shows run at this framerate as well
 
-DOWNMIX_AUDIO=2 #Number of channels to downmix to, set to 0 to turn off (leave source number of channels, but make sure to increase audio bitrate to accomodate all the needed bitrate. For 5.1 Id set no lower than 320). 1 == mono, 2 == stereo, 6 == 5.1
+DOWNMIX_AUDIO=2 #Number of channels to downmix to, set to 0 to turn off (Make sure to increase audio bitrate to accomodate all the needed bitrate. For 5.1 Id set no lower than 320). 1 == mono, 2 == stereo, 6 == 5.1
 
 #******************************************************************************
 #  Do not edit below this line
@@ -198,4 +198,4 @@ rm -f "$TMPFOLDER/"*".ppplock"  # Make sure all lock files are removed, just in 
 sleep 2
 rm -f "/tmp/tmp."* #Deleting other tmp files
 
-sleep 5 #Time for things to settle down
+sleep 5 #Time for things to settle down before PLEX takes over again
