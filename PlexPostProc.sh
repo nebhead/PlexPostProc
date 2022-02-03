@@ -141,7 +141,7 @@ if [ ! -z "$1" ]; then
    # Encode Done. Performing Cleanup
    # ********************************************************"
 
-   echo "$(date +"%Y%m%d-%H%M%S"): Finished transcode" | tee -a $LOGFILE
+   printf "$(date +"%Y%m%d-%H%M%S"): Finished transcode. " | tee -a $LOGFILE
 
    rm -f "$FILENAME" # Delete original in .grab folder
    check_errs $? "Failed to remove original file: $FILENAME"
@@ -171,7 +171,7 @@ if [ ! -z "$1" ]; then
      fi
    done
 
-   printf "$(date +"%Y%m%d-%H%M%S"): Encode done.  Exiting. \n\n" | tee -a $LOGFILE
+   printf "Exiting. \n\n" | tee -a $LOGFILE
 
 else
    echo "********************************************************" | tee -a $LOGFILE
