@@ -110,7 +110,7 @@ if [ ! -z "$1" ]; then
      printf "Using FFMPEG" | tee -a $LOGFILE
      printf " $FILESIZE -> " | tee -a $LOGFILE
      start_time=$(date +%s)
-	 if [[ $DOWNMIX_AUDIO -ne  0 ]]; then
+     if [[ $DOWNMIX_AUDIO -ne  0 ]]; then
          ffmpeg -i "$FILENAME" -s hd$RES -c:v "$VIDEO_CODEC" -r "$VIDEO_FRAMERATE"  -preset veryfast -crf "$VIDEO_QUALITY" -vf yadif -codec:a "$AUDIO_CODEC" -ac "$DOWNMIX_AUDIO" -b:a "$AUDIO_BITRATE"k -async 1 "$TEMPFILENAME"
      else
          ffmpeg -i "$FILENAME" -s hd$RES -c:v "$VIDEO_CODEC" -r "$VIDEO_FRAMERATE"  -preset veryfast -crf "$VIDEO_QUALITY" -vf yadif -codec:a "$AUDIO_CODEC" -b:a "$AUDIO_BITRATE"k -async 1 "$TEMPFILENAME"
