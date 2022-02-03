@@ -46,6 +46,16 @@ RES="720"         # Resolution to convert to:
                   # "720" = 720 Vertical Resolution
                   # "1080" = 1080 Vertical Resolution
 
+
+#**************************FFMPEG SPECIFIC SETTINGS****************************
+AUDIO_CODEC="aac" # From best to worst: libfdk_aac > libmp3lame/eac3/ac3 > aac. But libfdk_acc requires manual compilaton of ffmpeg. For OTA DVR standard acc should be enough.
+AUDIO_BITRATE=96
+VIDEO_CODEC="libx265" # Will need Ubuntu 18.04 LTS or later. Otherwise change to "libx264". On average libx265 should produce files half in size of libx264  without losing quality. It is more compute intensive, so transcoding will take longer.
+VIDEO_QUALITY=26 #Lower values produce better quality. It is not recommended going lower than 18. 26 produces around 1Mbps video, 23 around 1.5Mbps.
+VIDEO_FRAMERATE="24000/1001" #Standard US movie framerate, most US TV shows run at this framerate as well
+
+DOWNMIX_AUDIO=2 #Number of channels to downmix to, set to 0 to turn off (leave source number of channels, but make sure to increase audio bitrate to accomodate all the needed bitrate. For 5.1 Id set no lower than 320). 1 == mono, 2 == stereo, 6 == 5.1
+
 #******************************************************************************
 #  Do not edit below this line
 #******************************************************************************
@@ -100,7 +110,11 @@ if [ ! -z "$1" ]; then
      printf "Using FFMPEG" | tee -a $LOGFILE
      printf " $FILESIZE -> " | tee -a $LOGFILE
      start_time=$(date +%s)
-     ffmpeg -i "$FILENAME" -s hd$RES -c:v libx265 -r 24000/1001  -preset veryfast -crf 26 -vf yadif -codec:a aac -ac 2 -b:a 112k -async 1 "$TEMPFILENAME"
+	 if [[ $DOWNMIX_AUDIO -ne  0 ]]; then
+         ffmpeg -i "$FILENAME" -s hd$RES -c:v "$VIDEO_CODEC" -r "$VIDEO_FRAMERATE"  -preset veryfast -crf "$VIDEO_QUALITY" -vf yadif -codec:a "$AUDIO_CODEC" -ac "$DOWNMIX_AUDIO" -b:a "$AUDIO_BITRATE"k -async 1 "$TEMPFILENAME"
+     else
+         ffmpeg -i "$FILENAME" -s hd$RES -c:v "$VIDEO_CODEC" -r "$VIDEO_FRAMERATE"  -preset veryfast -crf "$VIDEO_QUALITY" -vf yadif -codec:a "$AUDIO_CODEC" -b:a "$AUDIO_BITRATE"k -async 1 "$TEMPFILENAME"
+     fi
      end_time=$(date +%s)
      seconds="$(( end_time - start_time ))"
      minutes_taken="$(( seconds / 60 ))"
@@ -141,7 +155,7 @@ if [ ! -z "$1" ]; then
    # Encode Done. Performing Cleanup
    # ********************************************************"
 
-   printf "$(date +"%Y%m%d-%H%M%S"): Finished transcode. " | tee -a $LOGFILE
+   printf "$(date +"%Y%m%d-%H%M%S"): Finished transcode, " | tee -a $LOGFILE
 
    rm -f "$FILENAME" # Delete original in .grab folder
    check_errs $? "Failed to remove original file: $FILENAME"
@@ -160,7 +174,7 @@ if [ ! -z "$1" ]; then
            echo "Timeout reached, ending wait" | tee -a $LOGFILE
            break
        fi
-       echo "$(date +"%Y%m%d-%H%M%S"): Looks like there is another scripting running.  Waiting." | tee -a $LOGFILE
+       echo "\n$(date +"%Y%m%d-%H%M%S"): Looks like there is another scripting running.  Waiting." | tee -a $LOGFILE
        timeout_counter=$((timeout_counter-1))
        sleep 60
      else
@@ -171,7 +185,7 @@ if [ ! -z "$1" ]; then
      fi
    done
 
-   printf "Exiting. \n\n" | tee -a $LOGFILE
+   printf "exiting. \n\n" | tee -a $LOGFILE
 
 else
    echo "********************************************************" | tee -a $LOGFILE
