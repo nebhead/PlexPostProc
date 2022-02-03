@@ -108,7 +108,7 @@ if [ ! -z "$1" ]; then
      check_errs $? "Failed to convert using Handbrake."
    elif [[ $ENCODER == "ffmpeg" ]]; then
      printf "Using FFMPEG" | tee -a $LOGFILE
-     printf " $FILESIZE -> " | tee -a $LOGFILE
+     printf " [$FILESIZE -> " | tee -a $LOGFILE
      start_time=$(date +%s)
      if [[ $DOWNMIX_AUDIO -ne  0 ]]; then
          ffmpeg -i "$FILENAME" -s hd$RES -c:v "$VIDEO_CODEC" -r "$VIDEO_FRAMERATE"  -preset veryfast -crf "$VIDEO_QUALITY" -vf yadif -codec:a "$AUDIO_CODEC" -ac "$DOWNMIX_AUDIO" -b:a "$AUDIO_BITRATE"k -async 1 "$TEMPFILENAME"
@@ -119,7 +119,7 @@ if [ ! -z "$1" ]; then
      seconds="$(( end_time - start_time ))"
      minutes_taken="$(( seconds / 60 ))"
      seconds_taken="$(( $seconds - (minutes_taken * 60) ))"
-     printf "$(ls -lh $TEMPFILENAME | awk ' { print $5 }') - [$minutes_taken min $seconds_taken sec]\n" | tee -a $LOGFILE
+     printf "$(ls -lh $TEMPFILENAME | awk ' { print $5 }')] - [$minutes_taken min $seconds_taken sec]\n" | tee -a $LOGFILE
      check_errs $? "Failed to convert using FFMPEG."
    elif [[ $ENCODER == "nvtrans" ]]; then
      export FFMPEG_EXTERNAL_LIBS="$(find ~/Library/Application\ Support/Plex\ Media\ Server/Codecs/ -name "libmpeg2video_decoder.so" -printf "%h\n")/"
