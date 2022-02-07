@@ -8,7 +8,7 @@
 #******************************************************************************
 #******************************************************************************
 #
-#  Version: 2022.2.2
+#  Version: 2.0 forked by Duxa
 #
 #  Pre-requisites:
 #     ffmpeg or handbrakecli
@@ -48,17 +48,26 @@ RES="720"         # Resolution to convert to:
 
 
 #**************************FFMPEG SPECIFIC SETTINGS****************************
-AUDIO_CODEC="aac" # From best to worst: libfdk_aac > libmp3lame/eac3/ac3 > aac. But libfdk_acc requires manual compilaton of ffmpeg. For OTA DVR standard acc should be enough.
+AUDIO_CODEC="libfdk_aac" # From best to worst: libfdk_aac > libmp3lame/eac3/ac3 > aac. But libfdk_acc requires manual compilaton of ffmpeg. For OTA DVR standard acc should be enough.
 AUDIO_BITRATE=96
 VIDEO_CODEC="libx265" # Will need Ubuntu 18.04 LTS or later. Otherwise change to "libx264". On average libx265 should produce files half in size of libx264  without losing quality. It is more compute intensive, so transcoding will take longer.
 VIDEO_QUALITY=26 #Lower values produce better quality. It is not recommended going lower than 18. 26 produces around 1Mbps video, 23 around 1.5Mbps.
 VIDEO_FRAMERATE="24000/1001" #Standard US movie framerate, most US TV shows run at this framerate as well
 
-DOWNMIX_AUDIO=2 #Number of channels to downmix to, set to 0 to turn off (Make sure to increase audio bitrate to accomodate all the needed bitrate. For 5.1 Id set no lower than 320). 1 == mono, 2 == stereo, 6 == 5.1
+DOWNMIX_AUDIO=2 #Number of channels to downmix to, set to 0 to turn off (leave source number of channels, but make sure to increase audio bitrate to accomodate all the needed bitrate. For 5.1 Id set no lower than 320). 1 == mono, 2 == stereo, 6 == 5.1
 
 #******************************************************************************
 #  Do not edit below this line
 #******************************************************************************
+PPP_CHECK=0
+
+#In order to avoid log file jumble, if another transcode process is active will wait to write to log until done
+if ls "$TMPFOLDER/"*".ppplock" 1> /dev/null 2>&1; then
+    PPP_CHECK=1
+fi
+
+LOG_STRING_3="" #Placeholder as some portions dont use all log strings.
+LOG_STRING_4=""
 
 sleep 3
 
@@ -101,14 +110,23 @@ if [ ! -z "$1" ]; then
    # Starting Transcoding
    # ********************************************************
 
-   printf "$(date +"%Y%m%d-%H%M%S"): Transcoding $FILENAME to $TEMPFILENAME\n" | tee -a $LOGFILE
+   LOG_STRING_1="$(date +"%Y%m%d-%H%M%S"): Transcoding $FILENAME to $TEMPFILENAME\n"
+   if [[ PPP_CHECK -eq 0 ]]; then
+     printf "$LOG_STRING_1" | tee -a $LOGFILE
+   fi
    if [[ $ENCODER == "handbrake" ]]; then
-     echo "You have selected HandBrake" | tee -a $LOGFILE
+     LOG_STRING_2="You have selected HandBrake"
+	 if [[ PPP_CHECK -eq 0 ]]; then
+       printf "$LOG_STRING_1" | tee -a $LOGFILE
+     fi
      HandBrakeCLI -i "$FILENAME" -f mkv --aencoder copy -e qsv_h264 --x264-preset veryfast --x264-profile auto -q 16 --maxHeight $RES --decomb bob -o "$TEMPFILENAME"
      check_errs $? "Failed to convert using Handbrake."
    elif [[ $ENCODER == "ffmpeg" ]]; then
-     printf "Using FFMPEG" | tee -a $LOGFILE
-     printf " [$FILESIZE -> " | tee -a $LOGFILE
+     LOG_STRING_2="Using FFMPEG"
+     LOG_STRING_3=" [$FILESIZE -> "
+     if [[ PPP_CHECK -eq 0 ]]; then
+         printf "$LOG_STRING_2$LOG_STRING_3" | tee -a $LOGFILE
+     fi	 
      start_time=$(date +%s)
      if [[ $DOWNMIX_AUDIO -ne  0 ]]; then
          ffmpeg -i "$FILENAME" -s hd$RES -c:v "$VIDEO_CODEC" -r "$VIDEO_FRAMERATE"  -preset veryfast -crf "$VIDEO_QUALITY" -vf yadif -codec:a "$AUDIO_CODEC" -ac "$DOWNMIX_AUDIO" -b:a "$AUDIO_BITRATE"k -async 1 "$TEMPFILENAME"
@@ -119,7 +137,7 @@ if [ ! -z "$1" ]; then
      seconds="$(( end_time - start_time ))"
      minutes_taken="$(( seconds / 60 ))"
      seconds_taken="$(( $seconds - (minutes_taken * 60) ))"
-     printf "$(ls -lh $TEMPFILENAME | awk ' { print $5 }')] - [$minutes_taken min $seconds_taken sec]\n" | tee -a $LOGFILE
+     LOG_STRING_4="$(ls -lh $TEMPFILENAME | awk ' { print $5 }')] - [$minutes_taken min $seconds_taken sec]\n"
      check_errs $? "Failed to convert using FFMPEG."
    elif [[ $ENCODER == "nvtrans" ]]; then
      export FFMPEG_EXTERNAL_LIBS="$(find ~/Library/Application\ Support/Plex\ Media\ Server/Codecs/ -name "libmpeg2video_decoder.so" -printf "%h\n")/"
@@ -155,7 +173,10 @@ if [ ! -z "$1" ]; then
    # Encode Done. Performing Cleanup
    # ********************************************************"
 
-   printf "$(date +"%Y%m%d-%H%M%S"): Finished transcode, " | tee -a $LOGFILE
+   LOG_STRING_5="$(date +"%Y%m%d-%H%M%S"): Finished transcode, "
+   if [[ PPP_CHECK -eq 0 ]]; then
+       printf "$LOG_STRING_4$LOG_STRING_5" | tee -a $LOGFILE
+   fi
 
    rm -f "$FILENAME" # Delete original in .grab folder
    check_errs $? "Failed to remove original file: $FILENAME"
@@ -184,7 +205,10 @@ if [ ! -z "$1" ]; then
        break
      fi
    done
-
+   
+   if [[ PPP_CHECK -eq 1 ]]; then
+       printf "$LOG_STRING_1$LOG_STRING_2$LOG_STRING_3$LOG_STRING_4$LOG_STRING_5" | tee -a $LOGFILE #Doing all together as to not stumble over multiple concurrent processes in log
+   fi
    printf "exiting. \n\n" | tee -a $LOGFILE
 
 else
@@ -198,4 +222,4 @@ rm -f "$TMPFOLDER/"*".ppplock"  # Make sure all lock files are removed, just in 
 sleep 2
 rm -f "/tmp/tmp."* #Deleting other tmp files
 
-sleep 5 #Time for things to settle down before PLEX takes over again
+sleep 5 #Time for things to settle down
