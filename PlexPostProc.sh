@@ -187,10 +187,10 @@ if [ ! -z "$1" ]; then
    mv -f "$TEMPFILENAME" "${FILENAME%.ts}.mkv" # Move completed tempfile to .grab folder/filename
    check_errs $? "Failed to move converted file: $TEMPFILENAME"
 
-   rm -f "$LOCKFILE.ppplock"* # Delete the lockfile
+   rm -f "$LOCKFILE.ppplock"* # Delete the lockfile 
    check_errs $? "Failed to remove lockfile."
 
-   # [WORKAROUND] Wait for any other post-processing scripts to complete before exiting.
+   # [WORKAROUND] Wait for any other post-processing scripts to complete before exiting. So that plex doesnt start deleting grab files.
    timeout_counter=120
    while [ true ] ; do
      if ls "$TMPFOLDER/"*".ppplock" 1> /dev/null 2>&1; then
@@ -225,6 +225,4 @@ else
    echo "********************************************************" | tee -a $LOGFILE
 fi
 
-rm -f "$LOCKFILE.ppplock"  # Only clean up own lock files, otherwise can remove one from another transcode
-
-sleep 5 #Time for things to settle down
+sleep 3 #Time for things to settle down, move commands to finish etc...
