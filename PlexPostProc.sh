@@ -8,10 +8,10 @@
 #******************************************************************************
 #******************************************************************************
 #
-#  Version: 2.0 forked by Duxa
+#  Version: 2022.2.7 (forked by apassiou)
 #
 #  Pre-requisites:
-#     ffmpeg or handbrakecli
+#     ffmpeg (recommended) with libx265 or handbrakecli
 #
 #  Usage:
 #     'PlexPostProc.sh %1'
@@ -29,8 +29,8 @@
 #      3. Copies the file back to the original .grab folder for final processing
 #
 #  Log:
-#     Logs will be generated for each encode with the format:
-#         plexppYYYYMMDD-HHMMSS.logging
+#     Single log is generated with timestamped transcodes.
+
 #     Note: Logs are not deleted, so some cleanup of the temp directory may be
 #       required, or a server reboot should clear this folder.
 #
@@ -116,7 +116,7 @@ if [ ! -z "$1" ]; then
    fi
    if [[ $ENCODER == "handbrake" ]]; then
      LOG_STRING_2="You have selected HandBrake"
-	 if [[ PPP_CHECK -eq 0 ]]; then
+         if [[ PPP_CHECK -eq 0 ]]; then
        printf "$LOG_STRING_1" | tee -a $LOGFILE
      fi
      HandBrakeCLI -i "$FILENAME" -f mkv --aencoder copy -e qsv_h264 --x264-preset veryfast --x264-profile auto -q 16 --maxHeight $RES --decomb bob -o "$TEMPFILENAME"
@@ -126,7 +126,7 @@ if [ ! -z "$1" ]; then
      LOG_STRING_3=" [$FILESIZE -> "
      if [[ PPP_CHECK -eq 0 ]]; then
          printf "$LOG_STRING_2$LOG_STRING_3" | tee -a $LOGFILE
-     fi	 
+     fi
      start_time=$(date +%s)
      if [[ $DOWNMIX_AUDIO -ne  0 ]]; then
          ffmpeg -i "$FILENAME" -s hd$RES -c:v "$VIDEO_CODEC" -r "$VIDEO_FRAMERATE"  -preset veryfast -crf "$VIDEO_QUALITY" -vf yadif -codec:a "$AUDIO_CODEC" -ac "$DOWNMIX_AUDIO" -b:a "$AUDIO_BITRATE"k -async 1 "$TEMPFILENAME"
@@ -195,7 +195,11 @@ if [ ! -z "$1" ]; then
            echo "Timeout reached, ending wait" | tee -a $LOGFILE
            break
        fi
-       echo "\n$(date +"%Y%m%d-%H%M%S"): Looks like there is another scripting running.  Waiting." | tee -a $LOGFILE
+       if [[ timeout_counter -eq 120 ]]; then #Prevents log spam, after initial message simple '.' will be printed to log.
+           printf "\n$(date +"%Y%m%d-%H%M%S"): Another transcode running. Waiting." | tee -a $LOGFILE
+       else
+           printf "." | tee -a $LOGFILE
+       fi
        timeout_counter=$((timeout_counter-1))
        sleep 60
      else
@@ -205,7 +209,7 @@ if [ ! -z "$1" ]; then
        break
      fi
    done
-   
+
    if [[ PPP_CHECK -eq 1 ]]; then
        printf "$LOG_STRING_1$LOG_STRING_2$LOG_STRING_3$LOG_STRING_4$LOG_STRING_5" | tee -a $LOGFILE #Doing all together as to not stumble over multiple concurrent processes in log
    fi
