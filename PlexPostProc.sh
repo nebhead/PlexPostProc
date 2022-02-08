@@ -89,8 +89,8 @@ if [ ! -z "$1" ]; then
 
    FILESIZE="$(ls -lh "$FILENAME" | awk '{ print $5 }')"
 
-   RANDFILENAME="$(mktemp)"  # Temporary File Name for transcoding
-   TEMPFILENAME="$RANDFILENAME.mkv"  # Temporary File Name for transcoding
+   RANDFILENAME="$(mktemp)"  # Base random name, will be used for cleanup
+   TEMPFILENAME="$RANDFILENAME.mkv"  # Random name with extension added
 
    LOCKFILE="$(mktemp)"  # [WORKAROUND] Temporary File for blocking simultaneous scripts from ending early
    touch "$LOCKFILE.ppplock" # Create the lock file
