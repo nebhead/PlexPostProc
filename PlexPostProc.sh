@@ -30,6 +30,9 @@
 #
 #  Log:
 #     Single log is generated with timestamped transcodes.
+
+#     Note: Logs are not deleted, so some cleanup of the temp directory may be
+#       required, or a server reboot should clear this folder.
 #
 #******************************************************************************
 
@@ -90,11 +93,11 @@ if [ ! -z "$1" ]; then
    FILESIZE="$(ls -lh "$FILENAME" | awk '{ print $5 }')"
 
    RANDFILENAME="$(mktemp)"  # Base random name, will be used for cleanup
-   TEMPFILENAME="$RANDFILENAME.mkv"  # Random name with extension added
+   TEMPFILENAME="$RANDFILENAME.mkv"  # Temporary File Name for transcoding
 
    LOCKFILE="$(mktemp)"  # [WORKAROUND] Temporary File for blocking simultaneous scripts from ending early
    touch "$LOCKFILE.ppplock" # Create the lock file
-   check_errs $? "Failed to create temporary lockfile: $LOCKFILE"
+   check_errs $? "Failed to create temporary lockfile: $LOCKFILE.ppplock"
 
    LOGFILE="$TMPFOLDER/plex_DVR_post_processing_log"
    touch $LOGFILE # Create the log file
@@ -171,7 +174,7 @@ if [ ! -z "$1" ]; then
    # Encode Done. Performing Cleanup
    # ********************************************************"
 
-   LOG_STRING_5="$(date +"%Y%m%d-%H%M%S"): Finished transcode,"
+   LOG_STRING_5="$(date +"%Y%m%d-%H%M%S"): Finished transcode, "
    if [[ PPP_CHECK -eq 0 ]]; then
        printf "$LOG_STRING_4$LOG_STRING_5" | tee -a $LOGFILE
    fi
@@ -182,7 +185,7 @@ if [ ! -z "$1" ]; then
    mv -f "$TEMPFILENAME" "${FILENAME%.ts}.mkv" # Move completed tempfile to .grab folder/filename
    check_errs $? "Failed to move converted file: $TEMPFILENAME"
 
-   rm -f "$LOCKFILE"* # Delete the lockfile and its tmp file
+   rm -f "$LOCKFILE.ppplock"* # Delete the lockfile and its tmp file
    check_errs $? "Failed to remove lockfile."
 
    # [WORKAROUND] Wait for any other post-processing scripts to complete before exiting.
@@ -211,7 +214,7 @@ if [ ! -z "$1" ]; then
    if [[ PPP_CHECK -eq 1 ]]; then
        printf "$LOG_STRING_1$LOG_STRING_2$LOG_STRING_3$LOG_STRING_4$LOG_STRING_5" | tee -a $LOGFILE #Doing all together as to not stumble over multiple concurrent processes in log
    fi
-   printf " exiting. \n" | tee -a $LOGFILE
+   printf "exiting. \n" | tee -a $LOGFILE
 
 else
    echo "********************************************************" | tee -a $LOGFILE
@@ -220,8 +223,7 @@ else
    echo "********************************************************" | tee -a $LOGFILE
 fi
 
-rm -f "$LOCKFILE.ppplock"  # Only clean up own lock files, otherwise can remove one from another transcode
-rm -f "$RANDFILENAME"
+rm -f "$TMPFOLDER/"*".ppplock"  # Make sure all lock files are removed, just in case there was an error somewhere in the script
+rm -f "$TMPFOLDER/$RANDFILENAME"
 
 sleep 5 #Time for things to settle down
-
