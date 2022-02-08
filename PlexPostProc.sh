@@ -8,10 +8,10 @@
 #******************************************************************************
 #******************************************************************************
 #
-#  Version: 2.0 forked by Duxa
+#  Version: 2022.2.7 (forked by apassiou)
 #
 #  Pre-requisites:
-#     ffmpeg or handbrakecli
+#     ffmpeg (recommended) with libx265 or handbrakecli
 #
 #  Usage:
 #     'PlexPostProc.sh %1'
@@ -29,8 +29,8 @@
 #      3. Copies the file back to the original .grab folder for final processing
 #
 #  Log:
-#     Logs will be generated for each encode with the format:
-#         plexppYYYYMMDD-HHMMSS.logging
+#     Single log is generated with timestamped transcodes.
+
 #     Note: Logs are not deleted, so some cleanup of the temp directory may be
 #       required, or a server reboot should clear this folder.
 #
@@ -92,11 +92,14 @@ if [ ! -z "$1" ]; then
 
    FILESIZE="$(ls -lh "$FILENAME" | awk '{ print $5 }')"
 
-   TEMPFILENAME="$(mktemp).mkv"  # Temporary File Name for transcoding
+   RANDFILENAME="$(mktemp)"  # Base random name, will be used for cleanup
+   rm -f "$RANDFILENAME" #Cleanup mktemp artifact
+   TEMPFILENAME="$RANDFILENAME.mkv"  # Temporary File Name for transcoding
 
-   LOCKFILE="$(mktemp).ppplock"  # [WORKAROUND] Temporary File for blocking simultaneous scripts from ending early
-   touch $LOCKFILE # Create the lock file
-   check_errs $? "Failed to create temporary lockfile: $LOCKFILE"
+   LOCKFILE="$(mktemp)"  # [WORKAROUND] Temporary File for blocking simultaneous scripts from ending early
+   rm -f "$LOCKFILE" #Clean up mktemp artifact
+   touch "$LOCKFILE.ppplock" # Create the lock file
+   check_errs $? "Failed to create temporary lockfile: $LOCKFILE.ppplock"
 
    LOGFILE="$TMPFOLDER/plex_DVR_post_processing_log"
    touch $LOGFILE # Create the log file
@@ -110,13 +113,13 @@ if [ ! -z "$1" ]; then
    # Starting Transcoding
    # ********************************************************
 
-   LOG_STRING_1="$(date +"%Y%m%d-%H%M%S"): Transcoding $FILENAME to $TEMPFILENAME\n"
+   LOG_STRING_1="\n$(date +"%Y%m%d-%H%M%S"): Transcoding $FILENAME to $TEMPFILENAME\n"
    if [[ PPP_CHECK -eq 0 ]]; then
      printf "$LOG_STRING_1" | tee -a $LOGFILE
    fi
    if [[ $ENCODER == "handbrake" ]]; then
      LOG_STRING_2="You have selected HandBrake"
-	 if [[ PPP_CHECK -eq 0 ]]; then
+         if [[ PPP_CHECK -eq 0 ]]; then
        printf "$LOG_STRING_1" | tee -a $LOGFILE
      fi
      HandBrakeCLI -i "$FILENAME" -f mkv --aencoder copy -e qsv_h264 --x264-preset veryfast --x264-profile auto -q 16 --maxHeight $RES --decomb bob -o "$TEMPFILENAME"
@@ -126,7 +129,7 @@ if [ ! -z "$1" ]; then
      LOG_STRING_3=" [$FILESIZE -> "
      if [[ PPP_CHECK -eq 0 ]]; then
          printf "$LOG_STRING_2$LOG_STRING_3" | tee -a $LOGFILE
-     fi	 
+     fi
      start_time=$(date +%s)
      if [[ $DOWNMIX_AUDIO -ne  0 ]]; then
          ffmpeg -i "$FILENAME" -s hd$RES -c:v "$VIDEO_CODEC" -r "$VIDEO_FRAMERATE"  -preset veryfast -crf "$VIDEO_QUALITY" -vf yadif -codec:a "$AUDIO_CODEC" -ac "$DOWNMIX_AUDIO" -b:a "$AUDIO_BITRATE"k -async 1 "$TEMPFILENAME"
@@ -173,7 +176,7 @@ if [ ! -z "$1" ]; then
    # Encode Done. Performing Cleanup
    # ********************************************************"
 
-   LOG_STRING_5="$(date +"%Y%m%d-%H%M%S"): Finished transcode, "
+   LOG_STRING_5="$(date +"%Y%m%d-%H%M%S"): Finished transcode,"
    if [[ PPP_CHECK -eq 0 ]]; then
        printf "$LOG_STRING_4$LOG_STRING_5" | tee -a $LOGFILE
    fi
@@ -184,10 +187,10 @@ if [ ! -z "$1" ]; then
    mv -f "$TEMPFILENAME" "${FILENAME%.ts}.mkv" # Move completed tempfile to .grab folder/filename
    check_errs $? "Failed to move converted file: $TEMPFILENAME"
 
-   rm -f "$LOCKFILE" # Delete the lockfile after completing
+   rm -f "$LOCKFILE.ppplock"* # Delete the lockfile 
    check_errs $? "Failed to remove lockfile."
 
-   # [WORKAROUND] Wait for any other post-processing scripts to complete before exiting.
+   # [WORKAROUND] Wait for any other post-processing scripts to complete before exiting. So that plex doesnt start deleting grab files.
    timeout_counter=120
    while [ true ] ; do
      if ls "$TMPFOLDER/"*".ppplock" 1> /dev/null 2>&1; then
@@ -195,7 +198,11 @@ if [ ! -z "$1" ]; then
            echo "Timeout reached, ending wait" | tee -a $LOGFILE
            break
        fi
-       echo "\n$(date +"%Y%m%d-%H%M%S"): Looks like there is another scripting running.  Waiting." | tee -a $LOGFILE
+       if [[ timeout_counter -eq 120 ]]; then #Prevents log spam, after initial message simple '.' will be printed to log.
+           printf "\n$(date +"%Y%m%d-%H%M%S"): Another transcode running. Waiting." | tee -a $LOGFILE
+       else
+           printf "." | tee -a $LOGFILE
+       fi
        timeout_counter=$((timeout_counter-1))
        sleep 60
      else
@@ -205,11 +212,11 @@ if [ ! -z "$1" ]; then
        break
      fi
    done
-   
+
    if [[ PPP_CHECK -eq 1 ]]; then
        printf "$LOG_STRING_1$LOG_STRING_2$LOG_STRING_3$LOG_STRING_4$LOG_STRING_5" | tee -a $LOGFILE #Doing all together as to not stumble over multiple concurrent processes in log
    fi
-   printf "exiting. \n\n" | tee -a $LOGFILE
+   printf " exiting.\n" | tee -a $LOGFILE
 
 else
    echo "********************************************************" | tee -a $LOGFILE
@@ -218,8 +225,4 @@ else
    echo "********************************************************" | tee -a $LOGFILE
 fi
 
-rm -f "$TMPFOLDER/"*".ppplock"  # Make sure all lock files are removed, just in case there was an error somewhere in the script
-sleep 2
-rm -f "/tmp/tmp."* #Deleting other tmp files
-
-sleep 5 #Time for things to settle down
+sleep 3 #Time for things to settle down, move commands to finish etc...
