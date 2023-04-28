@@ -47,6 +47,21 @@ sudo apt-get update
 sudo apt-get install handbrake-cli
 ~~~~
 
+### How to install FFMPEG inside the Plex Docker Container 
+
+Adding the latest FFMPEG to the container directly, by entering the container:
+
+```bash
+sudo docker exec -it plex /bin/bash
+```
+Then inside the container:
+
+```bash
+apt update && apt install -y software-properties-common
+apt install ffmpeg
+exit 
+```
+
 ## Installation
 
 First you will need to get the script onto your machine.  You can do this by cloning my git repository or simply downloading and placing in a directory of your choice.  
